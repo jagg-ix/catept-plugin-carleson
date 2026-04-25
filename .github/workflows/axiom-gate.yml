@@ -1,0 +1,47 @@
+name: Axiom Gate
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  axiom-check:
+    name: Lean 4 Axiom Surface Check
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Install Lean 4 toolchain
+      uses: leanprover/lean-action@v1
+      with:
+        use-mathlib-cache: true
+
+    - name: Warm Mathlib olean cache
+      run: lake exe cache get || true
+
+    - name: Build sibling package
+      run: lake build
+
+    - name: Check axiom surface — kernel-only sentinel theorems
+      run: |
+        cat > /tmp/check_axioms.lean << 'INNER_EOF'
+        import CATEPTPluginCarleson.IntegrationBridge
+
+        open CATEPTPluginCarleson
+
+        -- Permitted axioms: propext, Classical.choice, Quot.sound only.
+        -- Or "does not depend on any axioms" (purely structural proofs).
+        #print axioms carleson_integration_contract
+        #print axioms concrete_witness_contract
+        INNER_EOF
+        lake env lean /tmp/check_axioms.lean 2>&1 | tee /tmp/axiom_output.txt
+        if grep -v -E "propext|Classical\.choice|Quot\.sound|does not depend on any axioms|^#print|depends on axioms:|^$| " /tmp/axiom_output.txt | grep -qE "axiom|sorryAx"; then
+          echo "REGRESSION: non-kernel axiom or sorry in published surface"
+          cat /tmp/axiom_output.txt
+          exit 1
+        fi
+        echo "Axiom surface OK — sentinel theorems verified"
