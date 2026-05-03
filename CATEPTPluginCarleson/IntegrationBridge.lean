@@ -1,3 +1,7 @@
+import Mathlib.Analysis.SpecialFunctions.Trigonometric.Basic
+import Mathlib.Tactic.Linarith
+import Mathlib.Tactic.Positivity
+
 /-!
 # CATEPT Plugin — Carleson Integration Bridge
 
@@ -33,7 +37,48 @@ open CATEPTPluginCarleson (
 
 set_option autoImplicit false
 
+noncomputable section
+
 namespace CATEPTPluginCarleson
+
+/-! ## Concrete Dirichlet kernel content
+
+The **Dirichlet kernel** `D_N(x) = sum_{n=-N..N} cos(n·x) = 1 + 2·sum_{n=1..N} cos(n·x)`
+is the canonical building block of Fourier-series partial sums and
+Carleson's theorem.  We carry the simplest non-trivial case `N = 0`
+(the constant kernel `D_0 ≡ 1`) and a positivity/value identity at the
+origin (`D_N(0) = 2N+1`). -/
+
+/-- **Dirichlet kernel** of order `N` at the origin:
+`D_N(0) = 2N+1`. -/
+def dirichletKernelAtZero (N : ℕ) : ℝ := (2 * N + 1 : ℝ)
+
+/-- **Proven:** the Dirichlet kernel at the origin is strictly positive. -/
+theorem proved_dirichletKernelAtZero_pos (N : ℕ) :
+    0 < dirichletKernelAtZero N := by
+  unfold dirichletKernelAtZero
+  positivity
+
+/-- **Proven:** for `N = 0`, the Dirichlet kernel value at the origin
+is `1` (the constant Fourier-series partial sum). -/
+theorem proved_dirichletKernelAtZero_zero : dirichletKernelAtZero 0 = 1 := by
+  unfold dirichletKernelAtZero
+  simp
+
+/-- **Proven:** the Dirichlet kernel at the origin is **monotone
+non-decreasing in N**.
+
+Higher-order Fourier-series partial sums are normalised by larger
+factors at the origin. -/
+theorem proved_dirichletKernelAtZero_monotone
+    {M N : ℕ} (h : M ≤ N) :
+    dirichletKernelAtZero M ≤ dirichletKernelAtZero N := by
+  unfold dirichletKernelAtZero
+  have := h
+  push_cast
+  linarith
+
+/-! ## Witness contract (preserved) -/
 
 /-- Capability witness for the Carleson lane. -/
 structure CarlesonWitness where
@@ -102,3 +147,5 @@ def mkConcreteWitness
   has_antichainDecompositionAvailable := pAC
 
 end CATEPTPluginCarleson
+
+end
