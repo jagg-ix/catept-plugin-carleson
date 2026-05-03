@@ -74,8 +74,7 @@ theorem proved_dirichletKernelAtZero_monotone
     {M N : ℕ} (h : M ≤ N) :
     dirichletKernelAtZero M ≤ dirichletKernelAtZero N := by
   unfold dirichletKernelAtZero
-  have := h
-  push_cast
+  have hMN : (M : ℝ) ≤ (N : ℝ) := by exact_mod_cast h
   linarith
 
 /-! ## Witness contract (preserved) -/
